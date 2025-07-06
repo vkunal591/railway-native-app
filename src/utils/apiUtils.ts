@@ -9,7 +9,7 @@ export const IMAGE_URL = IMAGE_BASE_URL;
 export const BASE_URL =
     API_BASE_URL || 'http://localhost:5000';
 
-const api = axios.create({
+const api = axios.create({ 
     baseURL: BASE_URL,
     timeout: 5000, // Default timeout in milliseconds
 });
