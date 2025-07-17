@@ -1,0 +1,9 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "types": ["nativewind/types"],
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["global.d.ts", "App.tsx", "index.tsx", "src"]
+}
