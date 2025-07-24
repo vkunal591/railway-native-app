@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { View, Text, TextInput, ScrollView, ActivityIndicator, StyleSheet, Platform, TouchableOpacity, KeyboardAvoidingView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -12,6 +12,7 @@ import { MultiSelect } from 'react-native-element-dropdown';
 import Icons from 'react-native-vector-icons/Ionicons';
 import { Fetch, Put, Post } from '../../utils/apiUtils';
 import ImageUploader from '../../components/common/ImageUploader';
+import { LocationContext } from '../../context/LocationContextProvider';
 
 // Define navigation and route types
 type RootStackParamList = {
@@ -96,10 +97,11 @@ const projectSchema = yup.object({
 });
 
 export default function ProjectFormScreen() {
+  const { location, error, getCurrentLocation, markerStart, setMarkerStart, markerEnd, setMarkerEnd } = useContext(LocationContext);
   const route = useRoute<ProjectFormRouteProp>();
   const navigation = useNavigation<ProjectFormNavigationProp>();
   const projectId = route.params?.projectId;
-
+  console.log(markerStart, markerEnd)
   const { control, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<ProjectFormData>({
     defaultValues: {
       title: '',
@@ -108,8 +110,8 @@ export default function ProjectFormScreen() {
       endDate: null,
       status: 'not_started',
       budget: null,
-      startLocation: { type: 'Point', coordinates: [0, 0] },
-      endLocation: { type: 'Point', coordinates: [0, 0] },
+      startLocation: { type: 'Point', coordinates: [markerStart?.latitude || 0, markerStart?.longitude || 0] },
+      endLocation: { type: 'Point', coordinates: [markerEnd?.latitude || 0, markerEnd?.longitude || 0] },
       address: null,
       country: null,
       city: null,
@@ -144,8 +146,8 @@ export default function ProjectFormScreen() {
             address: d.address || null,
             country: d.country || null,
             city: d.city || null,
-            manager: d.manager?._id || null,
-            team: d.team?.map((u: User) => u._id) || [],
+            manager: d.manager[0] || null,
+            team: d.team?.map((u: User) => u) || [],
             images: [],
           });
         })
@@ -155,8 +157,9 @@ export default function ProjectFormScreen() {
   }, [projectId, reset]);
 
   useEffect(() => {
-    Fetch('/api/auth/users')
+    Fetch('/api/auth/user')
       .then((res: any) => {
+        console.log(res)
         if (!res.success) throw new Error(res.message);
         setUsers(res.data.users || []);
       })
@@ -167,10 +170,13 @@ export default function ProjectFormScreen() {
     (fieldName: 'startLocation' | 'endLocation') => {
       navigation.navigate('LocationPicker', {
         initial: { start: null, end: null },
-        onPick: ({ start, end }: { start: LocationPoint | null; end: LocationPoint | null }) => {
+        onPick: ({ start, end }) => {
           const point = fieldName === 'startLocation' ? start : end;
           if (point) {
-            setValue(fieldName, { type: 'Point', coordinates: [point.longitude, point.latitude] });
+            setValue(fieldName, {
+              type: 'Point',
+              coordinates: [point.longitude, point.latitude]
+            });
           }
         },
       });
@@ -178,32 +184,44 @@ export default function ProjectFormScreen() {
     [navigation, setValue]
   );
 
+
   const onSubmit = useCallback(
     async (data: ProjectFormData) => {
       const form = new FormData();
       Object.entries(data).forEach(([key, value]) => {
-        if (key === 'images' && value) {
+        if (key === 'images' && Array.isArray(value)) {
           value.forEach((img, i) => {
-            form.append('images', { uri: img.uri, name: img.name || `img${i}.jpg`, type: img.type || 'image/jpeg' });
+            if (img?.uri) {
+              form.append(`images${i}`, {
+                uri: img.uri,
+                name: img.name || `img${i}.jpg`,
+                type: img.type || 'image/jpeg',
+              });
+            }
           });
         } else if (['startLocation', 'endLocation'].includes(key) && value) {
           form.append(key, JSON.stringify(value));
         } else if (Array.isArray(value)) {
-          value.forEach((val) => form.append(key, val));
-        } else if (value != null && value !== '') {
-          form.append(key, key === 'budget' ? String(value) : String(value));
+          value
+            .filter((v) => v !== undefined && v !== null && v !== 'undefined')
+            .forEach((val) => form.append(key, val));
+        } else if (value != null && value !== '' && value !== 'undefined') {
+          form.append(key, String(value));
         }
       });
+
 
       try {
         const method = projectId ? Put : Post;
         const url = projectId ? `/api/projects/${projectId}` : '/api/projects';
         const res = await method(url, form);
+        console.log(res)
         if (!res.success) throw new Error(res.message);
         Toast.show({ type: 'success', text1: projectId ? 'Project Updated' : 'Project Created' });
         reset();
         navigation.goBack();
       } catch (e: any) {
+        console.log(e)
         Toast.show({ type: 'error', text1: e.message || 'An error occurred' });
       }
     },
@@ -525,7 +543,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     overflow: 'hidden',
   },
-  picker: { height: 48 },
+  picker: { color: "#000" },
   error: { color: '#FF3B30', fontSize: 14, marginTop: 4 },
   dropdown: {
     height: 50,
