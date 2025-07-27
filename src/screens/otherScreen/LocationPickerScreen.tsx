@@ -95,7 +95,7 @@ export default function EnhancedMapScreen() {
 
     Alert.alert(
       'Confirm',
-      `Start: ${markerStart ? `${markerStart.latitude.toFixed(4)},${markerStart.longitude.toFixed(4)}` : 'N/A'}\nEnd: ${markerEnd ? `${markerEnd.latitude.toFixed(4)},${markerEnd.longitude.toFixed(4)}` : 'N/A'}`,
+      `Start: ${markerStart ? `${markerStart?.latitude.toFixed(4)},${markerStart?.longitude.toFixed(4)}` : 'N/A'}\nEnd: ${markerEnd ? `${markerEnd.latitude.toFixed(4)},${markerEnd.longitude.toFixed(4)}` : 'N/A'}`,
       [
         {
           text: 'Cancel',

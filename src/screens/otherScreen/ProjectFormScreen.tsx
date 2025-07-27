@@ -219,6 +219,8 @@ export default function ProjectFormScreen() {
         if (!res.success) throw new Error(res.message);
         Toast.show({ type: 'success', text1: projectId ? 'Project Updated' : 'Project Created' });
         reset();
+        setMarkerStart(null);
+        setMarkerEnd(null)
         navigation.goBack();
       } catch (e: any) {
         console.log(e)
@@ -299,10 +301,18 @@ export default function ProjectFormScreen() {
                   mode="date"
                   display="default"
                   onChange={(event, date) => {
-                    setShowStartPicker(Platform.OS !== 'ios');
-                    if (date) setValue('startDate', date);
+                    if (Platform.OS === 'android') {
+                      if (event.type === 'set' && date) {
+                        setValue('startDate', date);
+                      }
+                      setShowStartPicker(false); // always close on Android after selection or dismissal
+                    } else {
+                      // iOS: just update date but keep picker open for user to pick
+                      if (date) setValue('startDate', date);
+                    }
                   }}
                 />
+
               )}
             </>
           )}
@@ -329,10 +339,17 @@ export default function ProjectFormScreen() {
                   mode="date"
                   display="default"
                   onChange={(event, date) => {
-                    setShowEndPicker(Platform.OS !== 'ios');
-                    if (date) setValue('endDate', date);
+                    if (Platform.OS === 'android') {
+                      if (event.type === 'set' && date) {
+                        setValue('endDate', date);
+                      }
+                      setShowEndPicker(false);
+                    } else {
+                      if (date) setValue('endDate', date);
+                    }
                   }}
                 />
+
               )}
             </>
           )}

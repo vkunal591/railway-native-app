@@ -22,15 +22,15 @@ const SplashScreen = ({ navigation }: any) => {
         if (response.success) {
           // Optionally store user data again
           TokenStorage.setUserData(result);
-          navigation.navigate('HomeScreen'); // Go to main app
+          navigation.replace('HomeScreen'); // Go to main app
         } else {
           TokenStorage.removeToken();
-          navigation.navigate('LoginScreen');
+          navigation.replace('LoginScreen');
         }
       } catch (error) {
         console.log('Error fetching user:', error);
         TokenStorage.removeToken();
-        navigation.navigate('LoginScreen');
+        navigation.replace('LoginScreen');
       }
     };
 
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 120,
     borderRadius: 20,
-    tintColor:"#fff"
+    tintColor: "#fff"
   },
   title: {
     color: 'white',

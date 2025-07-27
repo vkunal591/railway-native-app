@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 // import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
 import Toast from 'react-native-toast-message';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import ProjectCard from '../../components/common/ProjectCard';
 import { Delete, Fetch } from '../../utils/apiUtils';
 import { Picker } from '@react-native-picker/picker';
@@ -13,17 +13,17 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import AssetCard from '../../components/common/AssetsCard';
 
 export default function TrackingScreen() {
+    const route = useRoute()
+    const { projectId }: any = route.params;
     const [trackings, setTrackingsScreen] = useState([]);
     const [filter, setFilter] = useState<any>({
         page: 1,
-        title: '',
+        project: projectId,
         status: '',
         startDate: '',
         endDate: '',
     });
-    const [showStartPicker, setShowStartPicker] = useState(false);
-    const [showEndPicker, setShowEndPicker] = useState(false);
-
+    console.warn(filter)
     const [loading, setLoading] = useState(false);
     const [total, setTotal] = useState(0);
     const navigation = useNavigation<any>();
@@ -33,7 +33,7 @@ export default function TrackingScreen() {
         setLoading(true);
         try {
             const params = new URLSearchParams(filter).toString();
-            const res: any = await Fetch(`/api/assets`);
+            const res: any = await Fetch(`/api/assets`, filter);
             console.log(res?.data?.result)
             const data = res?.data?.result;
             const total = res?.data?.pagination?.totalItems;
@@ -48,7 +48,7 @@ export default function TrackingScreen() {
 
     useEffect(() => {
         fetchTrackingScreen();
-    }, [filter, isFocused]);
+    }, [filter, isFocused, projectId]);
 
     const loadMore = () => {
         if (trackings.length < total) {
@@ -69,83 +69,28 @@ export default function TrackingScreen() {
 
     return (
         <View style={styles.container}>
-
-            <Text style={styles.label}>Status</Text>
-            <View style={styles.pickerWrapper}>
-                <Picker
-                    selectedValue={filter.status}
-                    onValueChange={(value) => setFilter((f: any) => ({ ...f, status: value, page: 1 }))}
-                >
-                    <Picker.Item label="All" value="" />
-                    <Picker.Item label="Not Started" value="not_started" />
-                    <Picker.Item label="In Progress" value="in_progress" />
-                    <Picker.Item label="On Hold" value="on_hold" />
-                    <Picker.Item label="Completed" value="completed" />
-                    <Picker.Item label="Cancelled" value="cancelled" />
-                </Picker>
-            </View>
-            <TextInput
-                placeholder="🔍 Search by title"
-                value={filter.title}
-                onChangeText={text => setFilter((f: any) => ({ ...f, title: text, page: 1 }))}
-                style={styles.input}
-            />
-
-            <View style={styles.dateRow}>
-                <Text style={{ marginRight: "auto" }}>Filter By Date</Text>
-                <TouchableOpacity style={styles.dateButton} onPress={() => setShowStartPicker(true)}>
-                    <Text style={styles.dateButtonText}>{filter.startDate || 'Start Date'}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.dateButton} onPress={() => setShowEndPicker(true)}>
-                    <Text style={styles.dateButtonText}>{filter.endDate || 'End Date'}</Text>
-                </TouchableOpacity>
-            </View>
-            {showStartPicker && (
-                <DateTimePicker
-                    value={filter.startDate ? new Date(filter.startDate) : new Date()}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={(e, date) => {
-                        setShowStartPicker(false);
-                        if (date) {
-                            setFilter(f => ({ ...f, startDate: date.toISOString().split('T')[0], page: 1 }));
-                        }
-                    }}
-                />
-            )}
-
-            {showEndPicker && (
-                <DateTimePicker
-                    value={filter.endDate ? new Date(filter.endDate) : new Date()}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={(e, date) => {
-                        setShowEndPicker(false);
-                        if (date) {
-                            setFilter(f => ({ ...f, endDate: date.toISOString().split('T')[0], page: 1 }));
-                        }
-                    }}
-                />
-            )}
-
-            <TouchableOpacity style={{ width: "100%", padding: 10, marginVertical: 10, backgroundColor: "skyblue", borderRadius: 10 }} onPress={() => navigation.navigate('TrackingFromScreen')} >
-                <Text style={{ color: "#fff", fontWeight: 700, textAlign: "center" }}>
-                    Add New Tracker
+            <View style={{ flexDirection: "row", alignItems: 'center', justifyContent: "space-between" }}>
+                <Text style={{ fontSize: 20, fontWeight: "600" }}>
+                    All Assets Tracking Points
                 </Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                    style={{ padding: 5, marginVertical: 5, paddingHorizontal: 15, backgroundColor: "#003891", borderRadius: 10 }}
+                    onPress={() => navigation.navigate('TrackingFromScreen', { projectId })}
+                >
+                    <Text style={{ color: "#fff", fontWeight: 700, textAlign: "center", fontSize: 20 }}>
+                        +
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
 
             {loading && trackings.length === 0 ? (
                 <ActivityIndicator />
-                // <SkeletonPlaceholder>
-                //   <SkeletonPlaceholder.Item height={100} margin={10} />
-                // </SkeletonPlaceholder>
             ) : (
                 <FlatList
                     data={trackings}
                     keyExtractor={(p: any) => p._id}
-                    renderItem={({item}) => {
-                        console.log(item,"efedfe")
+                    renderItem={({ item }) => {
                         return (
                             <AssetCard
                                 asset={item}
@@ -159,6 +104,21 @@ export default function TrackingScreen() {
                     ListFooterComponent={loading && trackings.length > 0 ? <ActivityIndicator /> : null}
                 />
             )}
+
+            <TouchableOpacity
+                style={styles.floatingButton}
+                onPress={() =>
+                    navigation.navigate('MapRouteScreen', {
+                        coordinates: trackings.map((asset: any) => ({
+                            latitude: asset.location.coordinates[1],
+                            longitude: asset.location.coordinates[0],
+                        })),
+                    })
+                }
+            >
+                <Text style={styles.floatingButtonText}>🗺️</Text>
+            </TouchableOpacity>
+
         </View>
     );
 }
@@ -179,7 +139,10 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         marginBottom: 8,
         paddingHorizontal: 5,
-        overflow: 'hidden',
+        // overflow: 'hidden',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center"
     },
     dateRow: {
         flexDirection: 'row',
@@ -189,6 +152,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         width: "100%",
         // backgroundColor: "#000"
+        display: "none"
     },
     dateButton: {
         backgroundColor: '#f0f0f0',
@@ -203,4 +167,21 @@ const styles = StyleSheet.create({
         color: '#0f0f0f',
         fontSize: 16,
     },
+    floatingButton: {
+        position: 'absolute',
+        bottom: 20,
+        right: 20,
+        backgroundColor: '#003891',
+        borderRadius: 30,
+        width: 60,
+        height: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 6,
+    },
+    floatingButtonText: {
+        color: '#fff',
+        fontSize: 26,
+    },
+
 });

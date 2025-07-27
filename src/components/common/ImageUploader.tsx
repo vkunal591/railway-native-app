@@ -56,7 +56,7 @@ export default function ImageUploader({ images, onImages, max = 10 }: ImageUploa
   return (
     <View style={styles.container}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {localImages.map((img, idx) => (
+        {localImages && localImages?.map((img, idx) => (
           <View key={idx} style={styles.imageWrapper}>
             <Image source={{ uri: img.uri }} style={styles.image} />
             <TouchableOpacity style={styles.removeButton} onPress={() => removeImage(idx)}>
@@ -65,7 +65,7 @@ export default function ImageUploader({ images, onImages, max = 10 }: ImageUploa
           </View>
         ))}
 
-        {localImages.length < max && (
+        {localImages && localImages?.length < max && (
           <TouchableOpacity style={styles.addButton} onPress={pickImages}>
             <Icon name="add" size={30} color="#007AFF" />
             <Text style={styles.addText}>Add</Text>

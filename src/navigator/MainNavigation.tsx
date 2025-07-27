@@ -8,6 +8,9 @@ import BottomTabNavigator from './BottomTabNavigator';
 import TrackingFormScreen from '../components/common/TrackingFrom';
 import LocationPickerScreen from '../screens/otherScreen/LocationPickerScreen';
 import ProjectFormScreen from '../screens/otherScreen/ProjectFormScreen';
+import TrackingScreen from '../screens/adminScreens/TrackingScreen';
+import MapRouteScreen from '../screens/otherScreen/MapRouteScreen';
+import UserFormScreen from '../components/common/UserFromScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,8 +22,12 @@ const MainNavigation = () => {
       <Stack.Screen name="LoginScreen" component={LoginScreen} />
       <Stack.Screen name="HomeScreen" component={BottomTabNavigator} />
       <Stack.Screen name="TrackingFromScreen" component={TrackingFormScreen} />
+      <Stack.Screen name="TrackingScreen" component={TrackingScreen} />
+      <Stack.Screen name="MapRouteScreen" component={MapRouteScreen} />
       <Stack.Screen name="ProjectFormScreen" component={ProjectFormScreen} />
       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
+      <Stack.Screen name="UserFormScreen" component={UserFormScreen} />
+
 
     </Stack.Navigator>
   );

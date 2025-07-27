@@ -9,6 +9,7 @@ import { TokenStorage } from '../utils/apiUtils';
 import AdminDashboard from '../screens/adminScreens/AdminDashboard';
 import Projects from '../screens/adminScreens/Projects';
 import TrackingScreen from '../screens/adminScreens/TrackingScreen';
+import UsersScreen from '../screens/adminScreens/UsersScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -24,7 +25,7 @@ const LoadingSkeleton = () => (
 // Icon maps per role
 const adminIconMap = {
   // Dashboard: ImagePath.analytic,
-  Tracking: ImagePath.pin,
+  Users: ImagePath.pin,
   Projects: ImagePath.location2,
   Account: ImagePath.profile,
 };
@@ -71,7 +72,7 @@ export default function BottomTabNavigator() {
             style={{
               width: 24,
               height: 24,
-              tintColor: focused ? '#B68AD4' : '#313131',
+              tintColor: focused ? '#003891' : '#313131',
             }}
           />
         ),
@@ -89,7 +90,7 @@ export default function BottomTabNavigator() {
         tabBarItemStyle: {
           paddingVertical: 5,
         },
-        tabBarActiveTintColor: '#B68AD4',
+        tabBarActiveTintColor: '#003891',
         tabBarInactiveTintColor: '#313131',
       });
 
@@ -107,8 +108,8 @@ export default function BottomTabNavigator() {
     tabScreens = (
       <>
         {/* <Tab.Screen name="Dashboard" component={AdminDashboard} /> */}
-        <Tab.Screen name="Tracking" component={TrackingScreen} />
         <Tab.Screen name="Projects" component={Projects} />
+        <Tab.Screen name="Users" component={UsersScreen} />
         <Tab.Screen name="Account" component={ProfileScreen} />
       </>
     );
@@ -117,7 +118,7 @@ export default function BottomTabNavigator() {
     tabScreens = (
       <>
         {/* <Tab.Screen name="Dashboard" component={AdminDashboard} /> */}
-        <Tab.Screen name="Tracking" component={TrackingScreen} />
+        <Tab.Screen name="Projects" component={Projects} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </>
     );
@@ -125,7 +126,7 @@ export default function BottomTabNavigator() {
     iconMap = viewerIconMap;
     tabScreens = (
       <>
-        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Projects" component={Projects} />
         <Tab.Screen name="Account" component={ProfileScreen} />
       </>
     );
