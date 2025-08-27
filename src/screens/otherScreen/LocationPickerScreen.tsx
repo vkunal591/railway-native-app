@@ -119,8 +119,6 @@ export default function EnhancedMapScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-
-      {/* Geoapify Search Input */}
       <View style={styles.searchContainer}>
         <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, borderWidth: 1, borderColor: "gray", overflow: "hidden" }} >
           <TextInput
@@ -128,6 +126,7 @@ export default function EnhancedMapScreen() {
             onChangeText={fetchSuggestions}
             placeholder="Search location..."
             style={styles.searchInput}
+            placeholderTextColor={"gray"}
           />
           <TouchableOpacity onPress={() => { setQuery(''); setSuggestions([]) }}>
             <Icon name='close' color={""} size={22} />
@@ -154,7 +153,11 @@ export default function EnhancedMapScreen() {
           </TouchableOpacity>
         ))}
       </View>
-      <MapView provider={PROVIDER_GOOGLE} style={styles.map} region={region} mapType={mapType} showsUserLocation onRegionChangeComplete={setRegion}>
+
+      <MapView provider={PROVIDER_GOOGLE} style={styles.map} region={region}
+        showsUserLocation={true}
+        mapType={mapType} onRegionChangeComplete={setRegion}
+      >
         {markerStart && <Marker coordinate={markerStart} pinColor="green" draggable onDragEnd={e => setMarkerStart(e.nativeEvent.coordinate)} title="Start" />}
         {markerEnd && <Marker coordinate={markerEnd} pinColor="red" draggable onDragEnd={e => setMarkerEnd(e.nativeEvent.coordinate)} title="End" />}
         {currentLocation && <Circle center={currentLocation} radius={50} fillColor="rgba(0,150,255,0.2)" strokeColor="rgba(0,150,255,0.5)" />}
@@ -357,7 +360,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: Platform.OS === 'ios' ? 50 : 20, left: 10, right: 10, zIndex: 20
   },
   searchInput: {
-    height: 44, backgroundColor: '#fff', paddingHorizontal: 12, borderRadius: 8, width: "90%"
+    height: 44, backgroundColor: '#fff', paddingHorizontal: 12, borderRadius: 8, width: "90%", color: "#000"
   },
   dropdown: {
     backgroundColor: '#fff', marginTop: 4, borderRadius: 8, maxHeight: 150, elevation: 2

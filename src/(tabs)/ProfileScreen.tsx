@@ -1,132 +1,241 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Modal,
-  Switch,
-  ActivityIndicator,
-  Image,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  Modal, ActivityIndicator, TextInput, Image
 } from 'react-native';
-import { TokenStorage } from '../utils/apiUtils';
+import Toast from 'react-native-toast-message';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import * as ImagePicker from 'react-native-image-picker';
+import { Fetch, Put, TokenStorage } from '../utils/apiUtils';
+import { ImagePath } from '../constants/ImagePath';
+import { Picker } from '@react-native-picker/picker';
 
-const userAvatar = require('../assets/images/icons/user.png'); // Replace with your default/avatar
-
-const LoadingSkeleton = () => (
-  <View style={styles.loadingContainer}>
-    {[...Array(6)].map((_, i) => (
-      <View key={i} style={[styles.skeletonRow, { width: `${90 - i * 7}%` }]} />
-    ))}
-    <ActivityIndicator size="large" color="#B68AD4" style={{ marginTop: 16 }} />
-  </View>
-);
+const schema = yup.object().shape({
+  name: yup.string().required('Name is required'),
+  email: yup.string().email('Invalid email').required('Email is required'),
+  department: yup.string(),
+  designation: yup.string(),
+  manager: yup.string(),
+  city: yup.string(),
+  country: yup.string(),
+});
 
 const ProfileScreen = ({ navigation }: any) => {
-  const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [gpsEnabled, setGpsEnabled] = useState(false);
+  const [managersList, setManagersList] = useState<any[]>([]);
+  const [avatar, setAvatar] = useState<any>(null);
+
+  const {
+    control, handleSubmit, reset,
+    formState: { errors, isSubmitting }
+  } = useForm({ resolver: yupResolver(schema) });
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchAll = async () => {
       try {
-        const user = await TokenStorage.getUserData();
+        const user: any = await TokenStorage.getUserData();
         setUserData(user);
-        setGpsEnabled(user?.gpsEnabled || false);
+        if (user?.profilePic) {
+          setAvatar({ uri: user.profilePic });
+        }
+        reset(user);
+
+        const res: any = await Fetch('/api/auth/user?role=manager');
+        const managers = res?.data?.users.filter((u: any) => u.role === "manager");
+        setManagersList(managers);
       } catch (e) {
-        console.error('Fetch failed', e);
+        console.error(e);
+        Toast.show({ type: 'error', text1: 'Failed to load data' });
       } finally {
         setLoading(false);
       }
     };
-    fetchUser();
+    fetchAll();
   }, []);
 
-  const toggleGPSEnabled = () => setGpsEnabled(prev => !prev);
-  const handleLogout = () => {
-    TokenStorage.clearAll()
-    navigation.navigate("LoginScreen")
+  const pickImage = () => {
+    ImagePicker.launchImageLibrary({ mediaType: 'photo' }, (response) => {
+      if (response.didCancel) return;
+      if (response.assets && response.assets.length > 0) {
+        const selected = response.assets[0];
+        setAvatar({
+          uri: selected.uri,
+          type: selected.type,
+          name: selected.fileName,
+        });
+      }
+    });
   };
 
-  if (loading) return <LoadingSkeleton />;
+  const removeImage = () => {
+    setAvatar(null);
+  };
 
-  const {
-    name, email, role, isActive, createdAt,
-    streetAddress, landMark, city, state, country, pincode
-  } = userData;
+  const onSubmit = async (data: any) => {
+    try {
+      let employeeId = data.employeeId || `EMP-${Math.floor(100000 + Math.random() * 900000)}`;
+      const payload = { ...data, employeeId };
+
+      if (avatar && avatar.uri !== userData.profilePic) {
+        payload.profilePic = avatar.uri;
+      } else if (!avatar) {
+        payload.profilePic = '';
+      }
+
+      const res: any = await Put(`/api/auth/user/${userData._id}`, payload);
+      const updatedUser = res.data;
+      console.log(res)
+      setUserData(updatedUser);
+      TokenStorage.setUserData(updatedUser);
+      Toast.show({ type: 'success', text1: 'Profile updated' });
+      setModalVisible(false);
+    } catch (err) {
+      console.error(err);
+      Toast.show({ type: 'error', text1: 'Update failed' });
+    }
+  };
+
+  const handleLogout = () => {
+    TokenStorage.clearAll();
+    navigation.navigate('LoginScreen');
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#B68AD4" />
+      </View>
+    );
+  }
+
+  const renderField = (label: string, name: string, placeholder?: string) => (
+    <View style={styles.field} key={name}>
+      <Text style={styles.label}>{label}</Text>
+      <Controller
+        name={name as any}
+        control={control}
+        defaultValue={userData?.[name] || ''}
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            style={styles.input}
+            placeholder={placeholder || label}
+            onChangeText={onChange}
+            value={value}
+          />
+        )}
+      />
+      {errors[name] && <Text style={styles.error}>{(errors as any)[name]?.message}</Text>}
+    </View>
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          <Image source={userAvatar} style={styles.avatar} />
-        </View>
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.email}>{email}</Text>
+        <Image
+          source={
+            avatar?.uri
+              ? { uri: avatar.uri }
+              : userData?.profilePic
+                ? { uri: userData.profilePic }
+                : ImagePath.profile
+          }
+          style={styles.avatar}
+        />
+        <Text style={styles.name}>{userData?.name}</Text>
+        <Text style={styles.email}>{userData?.email}</Text>
+        <Text style={styles.role}>{userData?.role}</Text>
       </View>
 
-      {/* Status / Info Cards */}
-      <View style={styles.cardRow}>
-        <View style={[styles.statCard, isActive === 'true' ? styles.active : styles.inactive]}>
-          <Text style={styles.statLabel}>Status</Text>
-          <Text style={styles.statValue}>{isActive === 'true' ? 'Active' : 'Inactive'}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Role</Text>
-          <Text style={styles.statValue}>{role.charAt(0).toUpperCase() + role.slice(1)}</Text>
-        </View>
-      </View>
-
-      {/* Address Card */}
-      <View style={styles.addressCard}>
-        <Text style={styles.sectionTitle}>Address</Text>
-        <Text style={styles.addressText}>{streetAddress}</Text>
-        <Text style={styles.addressText}>{landMark}</Text>
-        <Text style={styles.addressText}>
-          {city}, {state}, {country} - {pincode}
-        </Text>
-      </View>
-
-      {/* Joined On */}
       <View style={styles.infoCard}>
-        <Text style={styles.sectionTitle}>Joined On</Text>
-        <Text style={styles.infoText}>{new Date(createdAt).toLocaleDateString()}</Text>
+        <Text style={styles.infoText}>Department: {userData?.department}</Text>
+        <Text style={styles.infoText}>Designation: {userData?.designation}</Text>
+        <Text style={styles.infoText}>Manager: {userData?.manager}</Text>
+        <Text style={styles.infoText}>Employee ID: {userData?.employeeId}</Text>
+        <Text style={styles.infoText}>City: {userData?.city}</Text>
+        <Text style={styles.infoText}>Country: {userData?.country}</Text>
       </View>
 
-      {/* Settings & Logout */}
-      <TouchableOpacity style={styles.settingsButton} onPress={() => setModalVisible(true)}>
-        <Text style={styles.settingsText}>Open Settings ⚙️</Text>
+      <TouchableOpacity style={styles.editButton} onPress={() => setModalVisible(true)}>
+        <Text style={styles.editButtonText}>Edit Profile</Text>
       </TouchableOpacity>
+
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
-      {/* Modal Settings */}
-      <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Settings</Text>
-            <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>Enable GPS</Text>
-              <Switch
-                value={gpsEnabled}
-                onValueChange={toggleGPSEnabled}
-                thumbColor={gpsEnabled ? '#B68AD4' : '#ccc'}
-              />
-            </View>
-            {role === 'admin' && (
-              <TouchableOpacity style={styles.adminButton}>
-                <Text style={styles.adminText}>Manage Users (Admin)</Text>
+      <Modal visible={modalVisible} animationType="slide">
+        <ScrollView contentContainerStyle={styles.modalContent}>
+          <Text style={styles.modalTitle}>Edit Profile</Text>
+
+          <View style={styles.imagePicker}>
+            {avatar?.uri || userData?.profilePic ? (
+              <>
+                <Image
+                  source={{ uri: avatar?.uri || userData.profilePic }}
+                  style={{ width: 100, height: 100, borderRadius: 50, marginBottom: 10 }}
+                />
+                <TouchableOpacity onPress={pickImage}>
+                  <Text style={styles.imagePickerText}>Change Image</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={removeImage}>
+                  <Text style={[styles.imagePickerText, { color: 'red' }]}>Remove Image</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity onPress={pickImage}>
+                <Text style={styles.imagePickerText}>Add Profile Image</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.closeText}>Close</Text>
-            </TouchableOpacity>
           </View>
-        </View>
+
+          {renderField('Name', 'name')}
+          {renderField('Email', 'email')}
+          {renderField('Department', 'department')}
+          {renderField('Designation', 'designation')}
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Manager</Text>
+            <Controller
+              name="manager"
+              control={control}
+              defaultValue={userData?.manager}
+              render={({ field: { onChange, value } }) => (
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    selectedValue={value}
+                    onValueChange={(itemValue) => onChange(itemValue)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Select a manager..." value="" />
+                    {managersList.map((manager: any, index: number) => (
+                      <Picker.Item key={index} label={manager?.name} value={manager?.id} />
+                    ))}
+                  </Picker>
+                </View>
+              )}
+            />
+          </View>
+
+          {renderField('Employee ID (auto-generated)', 'employeeId')}
+          {renderField('City', 'city')}
+          {renderField('Country', 'country')}
+
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSubmit(onSubmit)}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Save</Text>}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.cancelButton}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </Modal>
     </ScrollView>
   );
@@ -134,78 +243,32 @@ const ProfileScreen = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   container: { padding: 20, flexGrow: 1, backgroundColor: '#F9FAFB' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  skeletonRow: { height: 20, backgroundColor: '#e0e0e0', borderRadius: 4, marginBottom: 12 },
-
+  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { alignItems: 'center', marginBottom: 24 },
-  avatarContainer: { borderRadius: 50, overflow: 'hidden', marginBottom: 12 },
-  avatar: { width: 100, height: 100 },
-  name: { fontSize: 22, fontWeight: '600', color: '#111' },
+  avatar: { width: 100, height: 100, borderRadius: 50 },
+  name: { fontSize: 22, fontWeight: '600', marginTop: 12 },
   email: { fontSize: 14, color: '#666' },
-
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    marginHorizontal: 4,
-    padding: 16,
-    borderRadius: 8,
-    elevation: 2,
-    alignItems: 'center',
-  },
-  active: { backgroundColor: '#E6F9E8' },
-  inactive: { backgroundColor: '#FBEAEA' },
-  statLabel: { fontSize: 12, color: '#888' },
-  statValue: { fontSize: 16, fontWeight: '600', marginTop: 4 },
-
-  addressCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    elevation: 2,
-    marginBottom: 16,
-  },
-  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  addressText: { fontSize: 14, color: '#444', marginBottom: 4 },
-
-  infoCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    elevation: 2,
-    marginBottom: 24,
-  },
-  infoText: { fontSize: 14, color: '#444' },
-
-  settingsButton: {
-    backgroundColor: '#B68AD4',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  settingsText: { color: '#fff', fontWeight: '600' },
-
-  logoutButton: { backgroundColor: '#D9534F', padding: 14, borderRadius: 8, alignItems: 'center' },
+  role: { fontSize: 14, color: '#fafafa', backgroundColor: "#003891", padding: 2, paddingHorizontal: 15, borderRadius: 18, marginTop: 7 },
+  infoCard: { backgroundColor: '#fff', padding: 16, borderRadius: 8, marginVertical: 20, elevation: 2 },
+  infoText: { fontSize: 14, color: '#333', marginBottom: 6 },
+  editButton: { backgroundColor: '#fafafa', padding: 14, borderRadius: 8, alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: "#003891" },
+  editButtonText: { color: '#003891', fontWeight: '600' },
+  logoutButton: { backgroundColor: '#003891', padding: 14, borderRadius: 8, alignItems: 'center' },
   logoutText: { color: '#fff', fontWeight: '600' },
-
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: {
-    width: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 20,
-    elevation: 5,
-  },
+  modalContent: { padding: 20, backgroundColor: '#fff', flexGrow: 1 },
   modalTitle: { fontSize: 20, fontWeight: '600', marginBottom: 16 },
-  settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  settingLabel: { fontSize: 16, color: '#333' },
-
-  adminButton: { backgroundColor: '#B68AD4', padding: 12, borderRadius: 6, marginBottom: 12 },
-  adminText: { color: '#fff', textAlign: 'center', fontWeight: '600' },
-
-  closeButton: { padding: 12, alignItems: 'center' },
-  closeText: { color: '#B68AD4', fontSize: 16, fontWeight: '600' },
+  field: { marginBottom: 12 },
+  label: { fontSize: 14, marginBottom: 4, color: '#555' },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, backgroundColor: '#fff' },
+  error: { color: 'red', fontSize: 12 },
+  saveButton: { backgroundColor: '#003891', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 12 },
+  saveText: { color: '#fff', fontWeight: '600' },
+  cancelButton: { padding: 14, alignItems: 'center', marginTop: 10 },
+  cancelText: { color: '#003891', fontWeight: '600' },
+  imagePicker: { marginBottom: 16, alignItems: 'center' },
+  imagePickerText: { color: '#003891', fontWeight: '600', marginBottom: 6 },
+  pickerWrapper: { borderWidth: 1, borderColor: '#ccc', borderRadius: 4, overflow: 'hidden' },
+  picker: { width: '100%' },
 });
 
 export default ProfileScreen;

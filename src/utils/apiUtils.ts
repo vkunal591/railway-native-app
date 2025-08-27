@@ -6,7 +6,7 @@ import { API_BASE_URL, IMAGE_BASE_URL } from "@env"
 
 export const IMAGE_URL = IMAGE_BASE_URL;
 // Define API base URL
-export const BASE_URL = "http://192.168.136.2:5000" // 'https://rail.silkindia.co.in';
+export const BASE_URL = 'https://rail.silkindia.co.in';
 
 const api = axios.create({
     baseURL: BASE_URL,

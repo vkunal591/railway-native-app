@@ -11,7 +11,7 @@ import Share from 'react-native-share';
 import { useRoute } from '@react-navigation/native';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBfvIZsTphjvYd29lYG_WFbWj2KaG6H_bU';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyDFUazPDEuu1Ei_J7Nhhu-fKNyEcVDG9uQ';
 
 const getStaticMapUrl = (coords: { latitude: number; longitude: number }[]) => {
     const baseUrl = 'https://maps.googleapis.com/maps/api/staticmap';
@@ -22,7 +22,7 @@ const getStaticMapUrl = (coords: { latitude: number; longitude: number }[]) => {
     // Markers: start green, end red, others blue
     const markers = coords
         .map((c, i) => {
-            const color = i === 0 ? 'green' : i === coords.length - 1 ? 'red' : 'blue';
+            const color = 'blue';
             return `markers=color:${color}|${c.latitude},${c.longitude}`;
         })
         .join('&');
@@ -113,20 +113,14 @@ const MapRouteScreen = () => {
                     longitudeDelta: 0.05,
                 }}
             >
-                <Polyline coordinates={coordinates} strokeColor="#003891" strokeWidth={4} />
+                <Polyline coordinates={coordinates} strokeColor="red" strokeWidth={4} />
                 {coordinates.map((coord: any, index: number) => (
                     <Marker
                         key={index}
                         coordinate={coord}
                         title={`Point ${index + 1}`}
                         description={`Lat: ${coord.latitude}, Lng: ${coord.longitude}`}
-                        pinColor={
-                            index === 0
-                                ? 'green'
-                                : index === coordinates.length - 1
-                                    ? 'red'
-                                    : 'blue'
-                        }
+                        pinColor={'blue'}
                     />
                 ))}
             </MapView>

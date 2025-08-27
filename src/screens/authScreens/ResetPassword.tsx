@@ -24,15 +24,13 @@ const { width } = Dimensions.get('window')
 // Validation schema
 const schema = yup.object().shape({
     email: yup.string().email('Invalid email').required('Email is required'),
-    password: yup.string().min(6, 'Min 6 chars').required('Password is required'),
 })
 
-const LoginScreen = () => {
+const ResetPassword = () => {
     const navigation = useNavigation<any>()
     const fadeAnim = useRef(new Animated.Value(0)).current
     const [loading, setLoading] = useState(false)
-    const [showPassword, setShowPassword] = useState(false)
-    const { control, handleSubmit, formState: { errors } } = useForm({
+    const { control, handleSubmit, formState: { errors }, reset } = useForm({
         resolver: yupResolver(schema),
     })
 
@@ -47,28 +45,26 @@ const LoginScreen = () => {
     const onSubmit = async (data: any) => {
         setLoading(true);
         try {
-            const res: any = await Post('/api/auth/admin/login', data, 5000);
+            const res: any = await Post('/api/auth/reset-password', data, 5000);
             const result = await res?.data;
 
-            console.log('Login result:', result);
+            console.log('Reseet result:', result);
 
-            if (!result?.token || !result?.user) {
+            if (!result?.success) {
                 Toast.show({
                     type: 'error',
-                    text1: result?.message || 'Invalid response. Login failed.',
+                    text1: result?.message || 'Invalid response. Reset failed.',
                 });
                 return;
             }
 
-            // Save token and user info
-            TokenStorage.setToken(result.token);
-            TokenStorage.setUserData(result.user);
 
             Toast.show({
                 type: 'success',
-                text1: 'Login successful!',
+                text1: 'Password sented on mail!',
             });
-            navigation.navigate("HomeScreen")
+            reset()
+            navigation.replace("LoginScreen")
             // Proceed with navigation or update auth state here
         } catch (error: any) {
             console.log(error)
@@ -93,8 +89,8 @@ const LoginScreen = () => {
                 style={styles.overlay}
             >
                 <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
-                    <Text style={styles.title}>Welcome Back</Text>
-                    <Text style={styles.subtitle}>Sign in to continue</Text>
+                    <Text style={styles.title}>Forget Password</Text>
+                    <Text style={styles.subtitle}>Enter Your E-mail</Text>
 
                     {/* Email field */}
                     <Controller
@@ -117,38 +113,6 @@ const LoginScreen = () => {
                     />
                     {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
 
-                    {/* Password field */}
-                    <Controller
-                        control={control}
-                        name="password"
-                        render={({ field: { onChange, value } }) => (
-                            <View style={[styles.field, errors.password && styles.errorField]}>
-                                <Icon
-                                    name="lock"
-                                    size={20}
-                                    color={errors.password ? '#e63946' : '#555'}
-                                    style={{ marginRight: 8 }}
-                                />
-                                <TextInput
-                                    style={[styles.input, { flex: 1 }]}
-                                    placeholder="Password"
-                                    placeholderTextColor="#888"
-                                    secureTextEntry={!showPassword}
-                                    value={value}
-                                    onChangeText={onChange}
-                                />
-                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                                    <Icon
-                                        name={showPassword ? 'eye' : 'eye-off'}
-                                        size={20}
-                                        color="#888"
-                                    />
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    />
-                    {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
-
                     {/* Login button */}
                     <TouchableOpacity
                         style={styles.button}
@@ -158,13 +122,8 @@ const LoginScreen = () => {
                         {loading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.buttonText}>Log In</Text>
+                            <Text style={styles.buttonText}>Submit</Text>
                         )}
-                    </TouchableOpacity>
-                    <TouchableOpacity style={{ marginVertical: 5 }} onPress={() => navigation.navigate("ResetPasswordScreen")}>
-                        <Text style={{ color: "red", textAlign: "center" }}>
-                            Forget Password
-                        </Text>
                     </TouchableOpacity>
                 </Animated.View>
 
@@ -204,4 +163,4 @@ const styles = StyleSheet.create({
     buttonText: { color: '#fff', fontSize: 17, fontWeight: '600' },
 })
 
-export default LoginScreen
+export default ResetPassword;

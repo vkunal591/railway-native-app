@@ -34,7 +34,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
-
+        multiDexEnabled true
         // ✅ Add secrets here
         // buildConfigField "String", "MAPS_API_KEY", "\"${secretProps['MAPS_API_KEY']}\""
         manifestPlaceholders = [

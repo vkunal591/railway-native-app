@@ -11,6 +11,7 @@ import ProjectFormScreen from '../screens/otherScreen/ProjectFormScreen';
 import TrackingScreen from '../screens/adminScreens/TrackingScreen';
 import MapRouteScreen from '../screens/otherScreen/MapRouteScreen';
 import UserFormScreen from '../components/common/UserFromScreen';
+import ResetPassword from '../screens/authScreens/ResetPassword';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +28,8 @@ const MainNavigation = () => {
       <Stack.Screen name="ProjectFormScreen" component={ProjectFormScreen} />
       <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
       <Stack.Screen name="UserFormScreen" component={UserFormScreen} />
+      <Stack.Screen name="ResetPasswordScreen" component={ResetPassword} />
+
 
 
     </Stack.Navigator>
